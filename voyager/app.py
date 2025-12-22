@@ -5,11 +5,11 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import Footer, Header, TabbedContent
 
-from .config import DEFAULT_TABS
+from .config import DEFAULT_HTTP_TAB, DEFAULT_TABS
 from .docs_tab import DocumentationTab
-from .models import GraphQLTabSpec
+from .models import GraphQLTabSpec, HttpTabSpec
 from .storage import load_last_state, save_state
-from .tabs import GraphQLTab
+from .tabs import GraphQLTab, HttpTab
 
 
 class GraphQLVoyager(App[None]):
@@ -66,6 +66,10 @@ class GraphQLVoyager(App[None]):
 
     .vars-box, .headers-box {
         height: 5;
+    }
+
+    .body-box {
+        height: 8;
     }
 
     .response-actions {
@@ -163,13 +167,24 @@ class GraphQLVoyager(App[None]):
         height: 1fr;
         min-height: 0;
     }
+
+    .method-row {
+        width: 100%;
+        align: center middle;
+    }
+
+    .method-select {
+        width: 12;
+        min-width: 10;
+        margin-right: 1;
+    }
     """
 
     BINDINGS = [
-        Binding("ctrl+s", "send", "Send query"),
-        Binding("f5", "send", "Send query"),
-        Binding("ctrl+enter", "send", "Send query"),
-        Binding("ctrl+l", "focus_endpoint", "Focus endpoint"),
+        Binding("ctrl+s", "send", "Send request"),
+        Binding("f5", "send", "Send request"),
+        Binding("ctrl+enter", "send", "Send request"),
+        Binding("ctrl+l", "focus_endpoint", "Focus endpoint/URL"),
         Binding("ctrl+shift+c", "copy_response", "Copy response"),
         Binding("meta+c", "copy_response", "Copy response"),  # macOS Command+C
         Binding("meta+shift+c", "copy_response", "Copy response"),  # macOS Command+Shift+C
@@ -179,8 +194,10 @@ class GraphQLVoyager(App[None]):
     def __init__(self, tab_specs: Sequence[GraphQLTabSpec] | GraphQLTabSpec | None = None) -> None:
         super().__init__()
         base_spec = self._normalize_spec(tab_specs)
-        self.tab_spec = load_last_state(base_spec)
+        self.tab_spec = load_last_state(base_spec, section="graphql")
+        self.http_spec = load_last_state(DEFAULT_HTTP_TAB, section="http")
         self.view: GraphQLTab | None = None
+        self.http_view: HttpTab | None = None
         self.docs_view: DocumentationTab | None = None
 
     def compose(self) -> ComposeResult:
@@ -188,8 +205,10 @@ class GraphQLVoyager(App[None]):
         with Container(id="main"):
             with TabbedContent(id="tabs"):
                 self.view = GraphQLTab(self.tab_spec)
+                self.http_view = HttpTab(self.http_spec)
                 self.docs_view = DocumentationTab(self.tab_spec)
                 yield self.view
+                yield self.http_view
                 yield self.docs_view
         yield Footer()
 
@@ -203,22 +222,22 @@ class GraphQLVoyager(App[None]):
 
     async def action_send(self) -> None:
         tab = self._active_tab()
-        if isinstance(tab, GraphQLTab):
+        if isinstance(tab, (GraphQLTab, HttpTab)):
             await tab.send()
 
     def action_focus_endpoint(self) -> None:
         tab = self._active_tab()
-        if isinstance(tab, GraphQLTab):
+        if isinstance(tab, (GraphQLTab, HttpTab)):
             tab.focus_endpoint()
 
     async def action_copy_response(self) -> None:
         tab = self._active_tab()
-        if isinstance(tab, GraphQLTab):
+        if isinstance(tab, (GraphQLTab, HttpTab)):
             await tab.copy_response()
 
-    def save_state(self, spec: GraphQLTabSpec) -> None:
+    def save_state(self, spec: GraphQLTabSpec | HttpTabSpec, section: str) -> None:
         try:
-            save_state(spec)
+            save_state(spec, section)
         except Exception:
             # Silently ignore persistence failures; UI status is handled in view.
             return
@@ -236,6 +255,8 @@ class GraphQLVoyager(App[None]):
     def _active_tab(self):
         tabs = self.query_one("#tabs", TabbedContent)
         active_id = getattr(tabs, "active", None)
+        if active_id == "http":
+            return self.http_view
         if active_id == "docs":
             return self.docs_view
         return self.view

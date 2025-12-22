@@ -1,8 +1,9 @@
-from .models import GraphQLTabSpec
+from .models import GraphQLTabSpec, HttpTabSpec
 
 DEFAULT_ENDPOINT = "https://nginx.pm-repository.orb.local/graphql"
 DEFAULT_QUERY = ""  # Empty by default; enter your own query.
 DEFAULT_VARIABLES = "{}\n"
+DEFAULT_HTTP_ENDPOINT = "https://httpbin.org/get"
 
 DEFAULT_TABS = [
     GraphQLTabSpec(
@@ -13,3 +14,13 @@ DEFAULT_TABS = [
         variables=DEFAULT_VARIABLES,
     )
 ]
+
+DEFAULT_HTTP_TAB = HttpTabSpec(
+    id="http",
+    title="HTTP",
+    url=DEFAULT_HTTP_ENDPOINT,
+    method="GET",
+    body="",
+    headers="",
+    verify_tls=True,
+)

@@ -17,3 +17,14 @@ class GraphQLResponse:
     status: int
     text: str
     duration_ms: float
+
+
+@dataclass
+class HttpTabSpec:
+    id: str
+    title: str
+    url: str
+    method: str = "GET"
+    body: str = ""
+    headers: str = ""
+    verify_tls: bool = True

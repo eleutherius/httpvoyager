@@ -1,18 +1,21 @@
 """Voyager: a Textual-based GraphQL playground for the terminal."""
 
 from .app import GraphQLVoyager
-from .config import DEFAULT_ENDPOINT, DEFAULT_QUERY, DEFAULT_TABS, DEFAULT_VARIABLES
+from .config import DEFAULT_ENDPOINT, DEFAULT_HTTP_TAB, DEFAULT_QUERY, DEFAULT_TABS, DEFAULT_VARIABLES
 from .docs_tab import DocumentationTab
-from .models import GraphQLResponse, GraphQLTabSpec
-from .tabs import GraphQLTab
+from .models import GraphQLResponse, GraphQLTabSpec, HttpTabSpec
+from .tabs import GraphQLTab, HttpTab
 from .ui import SmallButton
 
 __all__ = [
     "GraphQLVoyager",
     "GraphQLTab",
+    "HttpTab",
     "GraphQLTabSpec",
+    "HttpTabSpec",
     "GraphQLResponse",
     "DEFAULT_ENDPOINT",
+    "DEFAULT_HTTP_TAB",
     "DEFAULT_QUERY",
     "DEFAULT_VARIABLES",
     "DEFAULT_TABS",

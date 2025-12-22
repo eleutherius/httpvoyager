@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding

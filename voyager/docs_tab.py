@@ -1,6 +1,7 @@
 import asyncio
 import json
-from typing import Any, Dict, List
+import logging
+from typing import Any
 
 from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
@@ -10,7 +11,6 @@ from .http_client import perform_request
 from .models import GraphQLTabSpec
 from .parsing import parse_headers
 from .ui import SmallButton
-
 
 INTROSPECTION_QUERY = """
 query IntrospectionQuery {
@@ -39,6 +39,7 @@ class DocumentationTab(TabPane):
     """Documentation explorer built from GraphQL introspection."""
 
     busy: reactive[bool] = reactive(False)
+    logger = logging.getLogger(__name__)
 
     def __init__(self, spec: GraphQLTabSpec) -> None:
         super().__init__(title="Docs", id="docs")
@@ -129,16 +130,18 @@ class DocumentationTab(TabPane):
         raw_headers = self._textarea("headers").text
         verify_tls = self._checkbox("verify").value
 
-        try:
-            query_tab = getattr(self.app, "view", None)  # type: ignore[attr-defined]
-            if query_tab:
+        query_tab = getattr(self.app, "view", None)  # type: ignore[attr-defined]
+        if query_tab:
+            try:
                 spec = query_tab.current_spec()
+            except Exception as exc:  # pragma: no cover - runtime safety
+                self.logger.debug("Could not sync from query tab: %s", exc)
+                self._set_status("Could not sync from Query tab.")
+            else:
                 endpoint = spec.endpoint
                 raw_headers = spec.headers
                 verify_tls = spec.verify_tls
                 self.set_from_spec(spec)
-        except Exception:
-            pass
 
         if not endpoint:
             self._set_status("Please provide an endpoint.")
@@ -168,54 +171,19 @@ class DocumentationTab(TabPane):
     def _populate_tree(self, response) -> None:
         tree = self._tree()
         self._clear_tree()
-        try:
-            data = json.loads(response.text)
-        except Exception as exc:
-            self._set_status(f"Could not parse JSON: {exc}")
-            self._textarea("details").load_text(response.text)
-            tree.refresh(layout=True)
+        data = self._parse_json_response(response, tree)
+        if data is None:
             return
 
-        if response.status != 200:
-            self._set_status(f"HTTP {response.status}")
-            self._textarea("details").load_text(response.text)
-            tree.refresh(layout=True)
-            return
-
-        errors = data.get("errors")
-        if errors:
-            self._set_status("GraphQL errors")
-            self._textarea("details").load_text(json.dumps(errors, indent=2))
-            tree.refresh(layout=True)
+        if not self._validate_response(response, data, tree):
             return
 
         types = data.get("data", {}).get("__schema", {}).get("types")
         if not types:
-            self._set_status("No types returned from schema.")
-            self._textarea("details").load_text(response.text)
-            tree.refresh(layout=True)
+            self._show_tree_message(tree, "No types returned from schema.", response.text)
             return
 
-        added = 0
-        for t in types:
-            name = t.get("name")
-            kind = t.get("kind")
-            if not name or name.startswith("__"):
-                continue
-            if kind not in ("OBJECT", "INTERFACE", "INPUT_OBJECT"):
-                continue
-            type_node = tree.root.add(f"{name} ({kind.lower()})", data={"description": t.get("description") or ""})
-            fields: List[Dict[str, Any]] = t.get("fields") or []
-            for f in fields:
-                fname = f.get("name")
-                ftype = _type_repr(f.get("type"))
-                fdesc = f.get("description") or ""
-                args = f.get("args") or []
-                arg_str = ", ".join(f"{a.get('name')}: {_type_repr(a.get('type'))}" for a in args)
-                data = {"description": fdesc, "type": ftype, "args_str": arg_str}
-                type_node.add(f"{fname}: {ftype}", data=data)
-            type_node.expand()
-            added += 1
+        added = self._add_types_to_tree(types, tree)
 
         # Expand everything so the user sees types/fields immediately.
         tree.root.expand_all()
@@ -232,6 +200,52 @@ class DocumentationTab(TabPane):
         if first_child:
             tree.focus_node(first_child)
             tree.scroll_to_node(first_child)
+
+    def _parse_json_response(self, response, tree: Tree) -> dict[str, Any] | None:
+        try:
+            return json.loads(response.text)
+        except Exception as exc:
+            self._show_tree_message(tree, f"Could not parse JSON: {exc}", response.text)
+            return None
+
+    def _validate_response(self, response, data: dict[str, Any], tree: Tree) -> bool:
+        if response.status != 200:
+            self._show_tree_message(tree, f"HTTP {response.status}", response.text)
+            return False
+
+        errors = data.get("errors")
+        if errors:
+            self._show_tree_message(tree, "GraphQL errors", json.dumps(errors, indent=2))
+            return False
+        return True
+
+    def _add_types_to_tree(self, types: list[dict[str, Any]], tree: Tree) -> int:
+        added = 0
+        for t in types:
+            name = t.get("name")
+            kind = t.get("kind")
+            if not name or name.startswith("__"):
+                continue
+            if kind not in ("OBJECT", "INTERFACE", "INPUT_OBJECT"):
+                continue
+            type_node = tree.root.add(f"{name} ({kind.lower()})", data={"description": t.get("description") or ""})
+            fields: list[dict[str, Any]] = t.get("fields") or []
+            for f in fields:
+                fname = f.get("name")
+                ftype = _type_repr(f.get("type"))
+                fdesc = f.get("description") or ""
+                args = f.get("args") or []
+                arg_str = ", ".join(f"{a.get('name')}: {_type_repr(a.get('type'))}" for a in args)
+                data = {"description": fdesc, "type": ftype, "args_str": arg_str}
+                type_node.add(f"{fname}: {ftype}", data=data)
+            type_node.expand()
+            added += 1
+        return added
+
+    def _show_tree_message(self, tree: Tree, status: str, details: str) -> None:
+        self._set_status(status)
+        self._textarea("details").load_text(details)
+        tree.refresh(layout=True)
 
     def _clear_tree(self) -> None:
         tree = self._tree()
@@ -259,7 +273,8 @@ class DocumentationTab(TabPane):
     def _set_status(self, message: str) -> None:
         self.query_one(f"#{self._wid('status')}", Static).update(message)
 
-def _type_repr(node: Dict[str, Any] | None) -> str:
+
+def _type_repr(node: dict[str, Any] | None) -> str:
     if not node:
         return "Unknown"
     name = node.get("name")

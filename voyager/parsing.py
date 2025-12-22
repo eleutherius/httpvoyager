@@ -1,10 +1,9 @@
 import json
-from typing import Dict
 
 from .models import GraphQLResponse
 
 
-def parse_json_object(raw: str) -> Dict:
+def parse_json_object(raw: str) -> dict:
     raw = raw.strip()
     if not raw:
         return {}
@@ -14,7 +13,7 @@ def parse_json_object(raw: str) -> Dict:
     return parsed
 
 
-def parse_headers(raw: str) -> Dict[str, str]:
+def parse_headers(raw: str) -> dict[str, str]:
     raw = raw.strip()
     if not raw:
         return {}
@@ -27,8 +26,8 @@ def parse_headers(raw: str) -> Dict[str, str]:
         return parse_header_lines(raw)
 
 
-def parse_header_lines(raw: str) -> Dict[str, str]:
-    headers: Dict[str, str] = {}
+def parse_header_lines(raw: str) -> dict[str, str]:
+    headers: dict[str, str] = {}
     for line in raw.splitlines():
         if not line.strip():
             continue
@@ -45,8 +44,4 @@ def format_response(response: GraphQLResponse) -> str:
         body = json.dumps(parsed, indent=2)
     except Exception:
         body = response.text
-    return (
-        f"Status: {response.status}\n"
-        f"Time: {response.duration_ms:.1f} ms\n"
-        f"Body:\n{body}"
-    )
+    return f"Status: {response.status}\nTime: {response.duration_ms:.1f} ms\nBody:\n{body}"

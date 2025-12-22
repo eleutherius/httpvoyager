@@ -20,3 +20,77 @@ Homepage = "https://example.com/http-voyager"
 [project.scripts]
 http-voyager = "voyager.cli:main"
 hv = "voyager.cli:main"
+
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+line-length = 121
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E4",   # pycodestyle: imports & blank-line rules
+    "E7",   # pycodestyle: statement formatting (colons, multi-statements)
+    "E9",   # pycodestyle: runtime-like syntax errors detected statically
+    "F",    # Pyflakes: undefined names, unused imports, unused variables
+    "I",    # import sorting rules (isort-equivalent)
+    "PERF", # performance checks (inefficient patterns, perflint)
+    "N",    # naming conventions (pep8-naming)
+    "PT",   # pytest style rules (flake8-pytest-style)
+    "S",    # security checks (bandit-like rules)
+    "T",    # logging format checks (flake8-logging-format)
+    "UP",   # Python syntax modernization (pyupgrade)
+    "W",    # whitespace rules (pycodestyle: spacing/indentation)
+    "YTT",  # Python version compatibility checks (flake8-2020)
+    "C90",  # mccabe: complexity (too complex functions)
+]
+ignore = []
+extend-select = [
+    "B",  # bugbear: logical errors, safety issues, common Python pitfalls
+    "Q",  # flake8-quotes: quote-style checks (single/double/docstring)
+]
+extend-ignore = [
+    "E701",  # multiple statements on one line (inline compact style allowed)
+    "B904",  # allow `raise` without `from` when chaining exceptions is unnecessary
+    "B905",  # allow zip() without strict=True (legacy/test patterns)
+    "F821",  # undefined name (used for dynamic names or pytest fixtures)
+    "Q000",  # disable strict quote style enforcement
+    "Q001",  # disable strict docstring quote rules
+    "Q002",  # disable strict string quote rules
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

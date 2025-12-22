@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import shutil
 import subprocess
 
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
@@ -15,6 +17,7 @@ class GraphQLTab(TabPane):
     """Single GraphQL playground view."""
 
     busy: reactive[bool] = reactive(False)
+    logger = logging.getLogger(__name__)
 
     def __init__(self, spec: GraphQLTabSpec) -> None:
         super().__init__(title="Query", id="query")
@@ -148,22 +151,32 @@ class GraphQLTab(TabPane):
             return
         try:
             await self.app.copy_to_clipboard(response_text)
+        except Exception as exc:  # pragma: no cover - runtime-only clipboard failure
+            self.logger.debug("Textual clipboard copy failed: %s", exc)
+        else:
             self._set_status("Response copied to clipboard.")
             return
-        except Exception:
-            pass
 
         # Fallback for environments where Textual clipboard is unavailable.
+        pbcopy_path = shutil.which("pbcopy")
+        if not pbcopy_path:
+            self._set_status("Copy failed: no clipboard available.")
+            return
         try:
-            proc = subprocess.Popen(["pbcopy"], stdin=subprocess.PIPE)
-            proc.communicate(input=response_text.encode("utf-8"), timeout=2)
-            if proc.returncode == 0:
-                self._set_status("Response copied via pbcopy.")
-                return
-        except Exception:
-            pass
-
-        self._set_status("Copy failed: no clipboard available.")
+            subprocess.run(  # noqa: S603 - uses local clipboard binary with trusted input
+                [pbcopy_path],
+                input=response_text,
+                text=True,
+                check=True,
+                timeout=2,
+            )
+        except (subprocess.SubprocessError, OSError) as exc:  # pragma: no cover - runtime-only clipboard failure
+            self.logger.debug("pbcopy execution failed: %s", exc)
+            self._set_status("Copy failed: no clipboard available.")
+            return
+        else:
+            self._set_status("Response copied via pbcopy.")
+            return
 
     def on_button_pressed(self, event: SmallButton.Pressed) -> None:
         if event.button.id == self._wid("send"):

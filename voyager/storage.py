@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from .models import GraphQLTabSpec
 
@@ -29,7 +29,7 @@ def load_last_state(default_spec: GraphQLTabSpec) -> GraphQLTabSpec:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return default_spec
-    merged: Dict[str, Any] = {
+    merged: dict[str, Any] = {
         "id": default_spec.id,
         "title": default_spec.title,
         "endpoint": default_spec.endpoint,

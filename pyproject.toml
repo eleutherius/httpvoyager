@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=63", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "http-voyager"
+version = "0.1.0"
+description = "Textual GraphQL playground for the terminal."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "textual>=0.50.0",
+    "httpx>=0.25.0",
+]
+authors = [{ name = "Voyager Maintainers" }]
+
+[project.urls]
+Homepage = "https://example.com/http-voyager"
+
+[project.scripts]
+http-voyager = "voyager.cli:main"
+hv = "voyager.cli:main"

@@ -5,7 +5,7 @@ import subprocess
 from collections.abc import Callable
 from typing import Any
 
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Checkbox, Input, Select, Static, TabPane, TextArea
 
@@ -93,24 +93,19 @@ class GraphQLTab(TabPane):
                         classes="box vars-box",
                     )
                     yield Static("Query", classes="label")
-                    yield VerticalScroll(
-                        TextArea(
-                            self.spec.query,
-                            language="graphql",
-                            id=self._wid("query"),
-                            show_line_numbers=True,
-                            classes="box query-box",
-                        ),
-                        classes="query-scroll",
+                    yield TextArea(
+                        self.spec.query,
+                        language="graphql",
+                        id=self._wid("query"),
+                        show_line_numbers=True,
+                        classes="box query-box",
                     )
                     with Horizontal(classes="actions"):
                         yield SmallButton("Send (Ctrl+S / F5)", id=self._wid("send"), variant="primary")
                         yield SmallButton("Clear", id=self._wid("clear"), variant="ghost")
+                        yield SmallButton("Copy", id=self._wid("copy-response"), variant="ghost")
                     yield Static("", id=self._wid("status"), classes="status")
                 with Vertical(classes="right-panel"):
-                    with Horizontal(classes="response-actions"):
-                        yield Static("Response", classes="label")
-                        yield SmallButton("Copy", id=self._wid("copy-response"), variant="ghost")
                     yield TextArea(
                         "",
                         language="json",
@@ -293,23 +288,18 @@ class HttpTab(TabPane):
                         classes="box headers-box",
                     )
                     yield Static("Body (optional)", classes="label")
-                    yield VerticalScroll(
-                        TextArea(
-                            self.spec.body,
-                            language="json",
-                            id=self._wid("body"),
-                            classes="box body-box",
-                        ),
-                        classes="query-scroll",
+                    yield TextArea(
+                        self.spec.body,
+                        language="json",
+                        id=self._wid("body"),
+                        classes="box body-box",
                     )
                     with Horizontal(classes="actions"):
                         yield SmallButton("Send (Ctrl+S / F5)", id=self._wid("send"), variant="primary")
                         yield SmallButton("Clear", id=self._wid("clear"), variant="ghost")
+                        yield SmallButton("Copy", id=self._wid("copy-response"), variant="ghost")
                     yield Static("", id=self._wid("status"), classes="status")
                 with Vertical(classes="right-panel"):
-                    with Horizontal(classes="response-actions"):
-                        yield Static("Response", classes="label")
-                        yield SmallButton("Copy", id=self._wid("copy-response"), variant="ghost")
                     yield TextArea(
                         "",
                         language="json",

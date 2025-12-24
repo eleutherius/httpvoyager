@@ -18,10 +18,10 @@ TabbedContent, TabPane {
 
 .columns {
     height: 1fr;
+    padding: 0 1;
 }
 
 .left-panel, .right-panel {
-    padding: 0 1;
     background: transparent;
 }
 
@@ -37,21 +37,28 @@ TabbedContent, TabPane {
 
 .box {
     background: transparent;
+    padding: 0 1;
 }
 
 .query-box {
     height: 15;
     border: solid yellow;
+    width: 100%;
+    text-wrap: wrap;
 }
 
 .vars-box, .headers-box {
     height: 5;
     border: solid yellow;
+    width: 100%;
+    text-wrap: wrap;
 }
 
 .body-box {
     height: 8;
     border: solid yellow;
+    width: 100%;
+    text-wrap: wrap;
 }
 
 .response-box {
@@ -155,5 +162,4 @@ Checkbox .toggle--label {
     width: 12;
     min-width: 10;
     margin-right: 1;
-}
 }

@@ -1,0 +1,56 @@
+Button {
+    margin: 1 2;
+}
+
+Horizontal > VerticalScroll {
+    width: 24;
+}
+
+.header {
+    margin: 1 0 0 2;
+    text-style: bold;
+}
+
+SmallButton {
+    height: 3;
+    min-height: 3;
+    padding: 0 3;
+    border: none;
+    background: red;
+    color: white;
+    content-align: center middle;
+    min-width: 12;
+    margin: 1 0 0 2;
+}
+
+SmallButton:hover {
+    background: #213355;
+    border: tall #6fa6ff;
+}
+
+SmallButton:focus {
+    border: tall #6fa6ff;
+}
+
+SmallButton.btn-primary {
+    background: #4f8dff;
+    border: tall #4f8dff;
+    color: #0b1221;
+}
+
+SmallButton.btn-primary:hover {
+    background: #6aa1ff;
+    border: tall #6aa1ff;
+}
+
+SmallButton.btn-ghost {
+    background: #233555;
+    border: tall #3b4f7a;
+    color: #f1f5ff;
+}
+
+SmallButton.btn-ghost:hover {
+    border: tall #6fa6ff;
+    color: #ffffff;
+    background: #2d4470;
+}

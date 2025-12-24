@@ -10,7 +10,7 @@ from textual.widgets import Checkbox, Input, Static, TabPane, TextArea, Tree
 from .http_client import perform_request
 from .models import GraphQLTabSpec
 from .parsing import parse_headers
-from .ui import SmallButton
+from .ui_components import SmallButton
 
 INTROSPECTION_QUERY = """
 query IntrospectionQuery {

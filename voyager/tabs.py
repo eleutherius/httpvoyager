@@ -12,7 +12,7 @@ from textual.widgets import Checkbox, Input, Select, Static, TabPane, TextArea
 from .http_client import perform_http_request, perform_request
 from .models import GraphQLTabSpec, HttpTabSpec
 from .parsing import format_response, parse_headers, parse_json_object
-from .ui import SmallButton
+from .ui_components import SmallButton
 
 
 async def _copy_text_with_fallback(

@@ -21,6 +21,9 @@ Homepage = "https://example.com/http-voyager"
 http-voyager = "voyager.cli:main"
 hv = "voyager.cli:main"
 
+[tool.setuptools.package-data]
+voyager = ["ui/styles/*.tcss"]
+
 [tool.ruff]
 exclude = [
     ".bzr",

@@ -5,7 +5,7 @@ from .config import DEFAULT_ENDPOINT, DEFAULT_HTTP_TAB, DEFAULT_QUERY, DEFAULT_T
 from .docs_tab import DocumentationTab
 from .models import GraphQLResponse, GraphQLTabSpec, HttpTabSpec
 from .tabs import GraphQLTab, HttpTab
-from .ui import SmallButton
+from .ui_components import SmallButton
 
 __all__ = [
     "GraphQLVoyager",

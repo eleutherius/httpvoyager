@@ -18,17 +18,15 @@ TabbedContent, TabPane {
 
 .columns {
     height: 1fr;
-    border: round #1f2d4a;
 }
 
 .left-panel, .right-panel {
     padding: 0 1;
-    background: #0f182b;
+    background: transparent;
 }
 
 .left-panel {
     width: 60%;
-    border-right: tall #1f2d4a;
 }
 
 .right-panel {
@@ -38,24 +36,27 @@ TabbedContent, TabPane {
 }
 
 .box {
-    border: round #22345b;
-    background: #0b1529;
+    background: transparent;
 }
 
 .query-box {
     height: 15;
+    border: solid yellow;
 }
 
 .vars-box, .headers-box {
     height: 5;
+    border: solid yellow;
 }
 
 .body-box {
     height: 8;
+    border: solid yellow;
 }
 
 .response-actions {
     margin-bottom: 1;
+    align: center middle;
 }
 
 .response-box {
@@ -65,6 +66,7 @@ TabbedContent, TabPane {
     scrollbar-size-vertical: 1;
     scrollbar-color: #4f8dff;
     scrollbar-background: #0b1221;
+    border: solid yellow;
 }
 
 .query-scroll {
@@ -80,11 +82,14 @@ TabbedContent, TabPane {
 
 .label {
     color: #8fb2ff;
-    text-style: bold;
 }
 
 .actions SmallButton, .response-actions SmallButton {
     margin-right: 1;
+}
+
+.actions, .response-actions {
+    align: center middle;
 }
 
 .endpoint-input {
@@ -93,11 +98,11 @@ TabbedContent, TabPane {
     max-width: 100%;
     background: #0b1529;
     color: #e5edff;
-    border: tall #22345b;
+    border: solid yellow;
 }
 
 .endpoint-input:focus {
-    border: tall #4f8dff;
+    border: solid yellow;
 }
 
 Checkbox {
@@ -111,18 +116,18 @@ Checkbox .toggle--button {
     height: 2;
     min-width: 2;
     min-height: 2;
-    border: tall #7fa6ff;
+    border: solid yellow;
     background: #162540;
 }
 
 Checkbox.-checked .toggle--button {
     background: #4a7dff;
     color: #0b1221;
-    border: tall #4a7dff;
+    border: solid yellow;
 }
 
 Checkbox:hover .toggle--button {
-    border: tall #a6c3ff;
+    border: solid yellow;
 }
 
 Checkbox .toggle--label {
@@ -137,12 +142,14 @@ Checkbox .toggle--label {
     padding: 0 1;
     layout: vertical;
     height: 1fr;
+    border: solid yellow;
 }
 
 .docs-tree {
     height: 1fr;
     min-height: 0;
     scrollbar-size-vertical: 1;
+    border: solid yellow;
 }
 
 .docs-display .response-box {

@@ -261,20 +261,23 @@ class HttpTab(TabPane):
         with Container(classes="layout"):
             with Horizontal(classes="columns"):
                 with Vertical(classes="left-panel"):
-                    yield Static("Request", classes="label")
-                    with Horizontal(classes="method-row"):
-                        yield Select(
-                            self.METHODS,
-                            value=self.spec.method,
-                            id=self._wid("method"),
-                            classes="method-select",
-                        )
-                        yield Input(
-                            value=self.spec.url,
-                            placeholder="https://api.example.com/resource",
-                            id=self._wid("endpoint"),
-                            classes="endpoint-input",
-                        )
+                    with Container(classes="top-section"):
+                        with Container(classes="label-container"):
+                            yield Static("Request", classes="label")
+                        with Horizontal(classes="method-row"):
+                            yield Select(
+                                self.METHODS,
+                                value=self.spec.method,
+                                id=self._wid("method"),
+                                classes="method-select",
+                            )
+                            with Container(classes="expand"):
+                                yield Input(
+                                    value = self.spec.url,
+                                    placeholder = "https://api.example.com/resource",
+                                    id = self._wid("endpoint"),
+                                    classes="endpoint-input",
+                            )
                     yield Checkbox(
                         "Verify TLS certificates (recommended)",
                         value=self.spec.verify_tls,

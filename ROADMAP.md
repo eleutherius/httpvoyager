@@ -11,4 +11,5 @@
 - [ ] HV-009 Implement upload functionality
 - [x] HV-010 Fix problem with floating request panel
 - [ ] HV-011 Add simple module tests
-- [ ] HV-012 Fix problem with floating graphql response/doc tabs
+- [x] HV-012 Fix problem with floating graphql response/doc tabs
+- [ ] HV-013 Add debug log functionality

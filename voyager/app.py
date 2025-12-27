@@ -7,7 +7,6 @@ from textual.widgets import Footer, Header, TabbedContent
 from importlib.resources import files
 
 from .config import DEFAULT_HTTP_TAB, DEFAULT_TABS
-from .docs_tab import DocumentationTab
 from .models import GraphQLTabSpec, HttpTabSpec
 from .storage import load_last_state, save_state
 from .tabs import GraphQLTab, HttpTab
@@ -36,7 +35,6 @@ class GraphQLVoyager(App[None]):
         self.http_spec = load_last_state(DEFAULT_HTTP_TAB, section="http")
         self.view: GraphQLTab | None = None
         self.http_view: HttpTab | None = None
-        self.docs_view: DocumentationTab | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(id="app-header", show_clock=True)
@@ -44,19 +42,13 @@ class GraphQLVoyager(App[None]):
             with TabbedContent(id="tabs"):
                 self.view = GraphQLTab(self.tab_spec)
                 self.http_view = HttpTab(self.http_spec)
-                self.docs_view = DocumentationTab(self.tab_spec)
                 yield self.view
                 yield self.http_view
-                yield self.docs_view
         yield Footer()
 
     def on_mount(self) -> None:
         if self.view:
             self.view.focus_query()
-
-    def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:  # type: ignore[override]
-        if event.tab.id == "docs" and self.view and self.docs_view:
-            self.docs_view.set_from_spec(self.view.current_spec())
 
     async def action_send(self) -> None:
         tab = self._active_tab()
@@ -95,6 +87,4 @@ class GraphQLVoyager(App[None]):
         active_id = getattr(tabs, "active", None)
         if active_id == "http":
             return self.http_view
-        if active_id == "docs":
-            return self.docs_view
         return self.view

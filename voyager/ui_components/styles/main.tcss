@@ -36,6 +36,15 @@ TabbedContent, TabPane {
     layout: vertical;
 }
 
+.right-tabs {
+    height: 1fr;
+ #   border: solid yellow;
+}
+
+.right-tabs TabPane {
+    height: 1fr;
+}
+
 .box {
     background: transparent;
     padding: 0 1;

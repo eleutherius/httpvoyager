@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import shutil
 import subprocess
@@ -7,12 +8,35 @@ from typing import Any
 
 from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
-from textual.widgets import Checkbox, Input, Select, Static, TabPane, TextArea
+from textual.widgets import Checkbox, Input, Select, Static, TabPane, TabbedContent, TextArea, Tree
 
 from .http_client import perform_http_request, perform_request
 from .models import GraphQLTabSpec, HttpTabSpec
 from .parsing import format_response, parse_headers, parse_json_object
 from .ui_components import SmallButton
+
+
+INTROSPECTION_QUERY = """
+query IntrospectionQuery {
+  __schema {
+    types {
+      kind
+      name
+      description
+      fields(includeDeprecated: true) {
+        name
+        description
+        args {
+          name
+          description
+          type { kind name ofType { kind name ofType { kind name } } }
+        }
+        type { kind name ofType { kind name ofType { kind name } } }
+      }
+    }
+  }
+}
+"""
 
 
 async def _copy_text_with_fallback(
@@ -102,17 +126,30 @@ class GraphQLTab(TabPane):
                     )
                     with Horizontal(classes="actions"):
                         yield SmallButton("Send (Ctrl+S / F5)", id=self._wid("send"), variant="primary")
+                        yield SmallButton("Load Docs", id=self._wid("load-docs"), variant="ghost")
                         yield SmallButton("Clear", id=self._wid("clear"), variant="ghost")
                         yield SmallButton("Copy", id=self._wid("copy-response"), variant="ghost")
                     yield Static("", id=self._wid("status"), classes="status")
-                with Vertical(classes="right-panel"):
-                    yield TextArea(
-                        "",
-                        language="json",
-                        id=self._wid("response"),
-                        read_only=True,
-                        classes="box response-box",
-                    )
+                with TabbedContent(classes="right-tabs"):
+                    with TabPane("Response", id=self._wid("response-tab")):
+                        yield TextArea(
+                            "",
+                            language="json",
+                            id=self._wid("response"),
+                            read_only=True,
+                            classes="box response-box",
+                        )
+                    with TabPane("Docs", id=self._wid("docs-tab")):
+                        yield Static("Explorer", classes="label")
+                        yield Tree("Schema", id=self._wid("tree"), classes="box docs-tree")
+                        yield Static("Details", classes="label")
+                        yield TextArea(
+                            "",
+                            language="markdown",
+                            id=self._wid("details"),
+                            read_only=True,
+                            classes="box response-box",
+                        )
 
     def watch_busy(self, busy: bool) -> None:
         self._button("send").disabled = busy
@@ -181,6 +218,8 @@ class GraphQLTab(TabPane):
     def on_button_pressed(self, event: SmallButton.Pressed) -> None:
         if event.button.id == self._wid("send"):
             asyncio.create_task(self.send())
+        elif event.button.id == self._wid("load-docs"):
+            asyncio.create_task(self.load_docs())
         elif event.button.id == self._wid("clear"):
             self.clear_response()
         elif event.button.id == self._wid("copy-response"):
@@ -232,6 +271,9 @@ class GraphQLTab(TabPane):
             self.app.save_state(spec, "graphql")  # type: ignore[attr-defined]
         except Exception:
             self._set_status("Could not save state.")
+
+    def _tree(self) -> Tree:
+        return self.query_one(f"#{self._wid('tree')}", Tree)
 
 
 class HttpTab(TabPane):

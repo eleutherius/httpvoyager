@@ -16,6 +16,8 @@ httpx is used if available; otherwise, the request goes through the standard lib
     http-voyager
     # or
     python -m voyager
+    # enable debug logging to ./http_voyager.log
+    http-voyager --debug
     ```
 
 **Controls**

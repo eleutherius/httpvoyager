@@ -13,4 +13,4 @@
 - [ ] HV-011 Add simple module tests
 - [x] HV-012 Fix problem with floating graphql response/doc tabs
 - [x] HV-013 Add debug log functionality
-- [ ] HV-014 Add WebSocket support
+- [x] HV-014 Add WebSocket support

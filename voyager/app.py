@@ -6,10 +6,11 @@ from textual.containers import Container
 from textual.widgets import Footer, Header, TabbedContent
 from importlib.resources import files
 
-from .config import DEFAULT_HTTP_TAB, DEFAULT_TABS
-from .models import GraphQLTabSpec, HttpTabSpec
+from .config import DEFAULT_HTTP_TAB, DEFAULT_TABS, DEFAULT_WS_TAB
+from .models import GraphQLTabSpec, HttpTabSpec, WebSocketTabSpec
 from .storage import load_last_state, save_state
 from .tabs import GraphQLTab, HttpTab
+from .ws_tab import WebSocketTab
 
 
 class GraphQLVoyager(App[None]):
@@ -33,8 +34,10 @@ class GraphQLVoyager(App[None]):
         base_spec = self._normalize_spec(tab_specs)
         self.tab_spec = load_last_state(base_spec, section="graphql")
         self.http_spec = load_last_state(DEFAULT_HTTP_TAB, section="http")
+        self.ws_spec = load_last_state(DEFAULT_WS_TAB, section="websocket")
         self.view: GraphQLTab | None = None
         self.http_view: HttpTab | None = None
+        self.ws_view: WebSocketTab | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(id="app-header", show_clock=True)
@@ -42,8 +45,10 @@ class GraphQLVoyager(App[None]):
             with TabbedContent(id="tabs"):
                 self.view = GraphQLTab(self.tab_spec)
                 self.http_view = HttpTab(self.http_spec)
+                self.ws_view = WebSocketTab(self.ws_spec)
                 yield self.view
                 yield self.http_view
+                yield self.ws_view
         yield Footer()
 
     def on_mount(self) -> None:
@@ -52,20 +57,20 @@ class GraphQLVoyager(App[None]):
 
     async def action_send(self) -> None:
         tab = self._active_tab()
-        if isinstance(tab, (GraphQLTab, HttpTab)):
+        if isinstance(tab, (GraphQLTab, HttpTab, WebSocketTab)):
             await tab.send()
 
     def action_focus_endpoint(self) -> None:
         tab = self._active_tab()
-        if isinstance(tab, (GraphQLTab, HttpTab)):
+        if isinstance(tab, (GraphQLTab, HttpTab, WebSocketTab)):
             tab.focus_endpoint()
 
     async def action_copy_response(self) -> None:
         tab = self._active_tab()
-        if isinstance(tab, (GraphQLTab, HttpTab)):
+        if isinstance(tab, (GraphQLTab, HttpTab, WebSocketTab)):
             await tab.copy_response()
 
-    def save_state(self, spec: GraphQLTabSpec | HttpTabSpec, section: str) -> None:
+    def save_state(self, spec: GraphQLTabSpec | HttpTabSpec | WebSocketTabSpec, section: str) -> None:
         try:
             save_state(spec, section)
         except Exception:
@@ -87,4 +92,6 @@ class GraphQLVoyager(App[None]):
         active_id = getattr(tabs, "active", None)
         if active_id == "http":
             return self.http_view
+        if active_id == "ws":
+            return self.ws_view
         return self.view

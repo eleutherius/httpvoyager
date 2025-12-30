@@ -33,6 +33,8 @@ httpx is used if available; otherwise, the request goes through the standard lib
 **Tabs**
 - Query — sending a query/mutation.
 - Docs — schema inspection via introspection: enter Endpoint/Headers/Verify TLS, press Load Schema, see the tree of types/fields and description of the active node.
+- HTTP — generic HTTP request tab.
+- WebSocket — connect to ws/wss endpoints, send messages, and view incoming frames in the log (uses the `websockets` package).
 - Fields (Query)
 - Endpoint — URL of the GraphQL server.
 - Headers — JSON object or list of strings in Key: Value format.
@@ -43,6 +45,7 @@ httpx is used if available; otherwise, the request goes through the standard lib
 - If the server returns non-JSON, the response will be shown as is.
 - The right panel displays status, execution time, and response body.
 - The last sent query/mutation and settings (endpoint, headers, variables, TLS flag) are saved in ~/.config/http_voyager/state.json (or XDG_CONFIG_HOME), loaded on the next launch.
+- WebSocket tab keeps a rolling log of sent/received frames; connect first, then send messages. Default endpoint points to a public echo server.
 
 **Extension / Customization**
 The module is built around GraphQLTabSpec and GraphQLVoyager. Change default values in voyager/config.py or create an application with your own GraphQLTabSpec:

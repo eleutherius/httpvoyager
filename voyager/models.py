@@ -28,3 +28,13 @@ class HttpTabSpec:
     body: str = ""
     headers: str = ""
     verify_tls: bool = True
+
+
+@dataclass
+class WebSocketTabSpec:
+    id: str
+    title: str
+    url: str
+    message: str = ""
+    headers: str = ""
+    verify_tls: bool = True

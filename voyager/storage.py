@@ -4,7 +4,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
 
-from .models import GraphQLTabSpec, HttpTabSpec
+from .models import GraphQLTabSpec, HttpTabSpec, WebSocketTabSpec
 
 APP_DIR_NAME = "http_voyager"
 CONFIG_FILE_NAME = "state.json"
@@ -21,7 +21,9 @@ def _config_path() -> Path:
     return _config_dir() / CONFIG_FILE_NAME
 
 
-def load_last_state[T: (GraphQLTabSpec, HttpTabSpec)](default_spec: T, section: str | None = None) -> T:
+def load_last_state[T: (GraphQLTabSpec, HttpTabSpec, WebSocketTabSpec)](
+    default_spec: T, section: str | None = None
+) -> T:
     """Load last saved state for a section, merging onto defaults."""
     path = _config_path()
     if not path.exists():

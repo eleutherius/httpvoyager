@@ -104,8 +104,8 @@ class WebSocketTab(TabPane):
         for name in ("connect", "send", "disconnect"):
             try:
                 self._button(name).disabled = busy
-            except Exception:
-                continue
+            except Exception as exc:  # pragma: no cover - defensive UI safeguard
+                self.logger.debug("Could not update %s button state: %s", name, exc)
         self._set_status("Working..." if busy else "")
 
     def watch_connected(self, connected: bool) -> None:

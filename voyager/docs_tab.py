@@ -5,8 +5,8 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Checkbox, Input, Static, TabPane, TextArea, Tree
 
-from .introspection import add_types_to_tree, build_introspection_result
 from .http_client import perform_request
+from .introspection import add_types_to_tree, build_introspection_result
 from .models import GraphQLTabSpec
 from .parsing import parse_headers
 from .ui_components import SmallButton

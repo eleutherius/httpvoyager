@@ -7,14 +7,13 @@ from typing import Any
 
 from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
-from textual.widgets import Checkbox, Input, Select, Static, TabPane, TabbedContent, TextArea, Tree
+from textual.widgets import Checkbox, Input, Select, Static, TabPane, TextArea, Tree
 
 from .http_client import perform_http_request, perform_request
 from .introspection import add_types_to_tree, build_introspection_result
 from .models import GraphQLTabSpec, HttpTabSpec
 from .parsing import format_response, parse_headers, parse_json_object
 from .ui_components import SmallButton
-
 
 INTROSPECTION_QUERY = """
 query IntrospectionQuery {
@@ -445,8 +444,8 @@ class HttpTab(TabPane):
     def watch_busy(self, busy: bool) -> None:
         try:
             self._button("send").disabled = busy
-        except Exception:
-            pass
+        except Exception as exc:  # pragma: no cover - defensive UI safeguard
+            self.logger.debug("Could not update send button state: %s", exc)
         status = "Sending request..." if busy else ""
         self._set_status(status)
 

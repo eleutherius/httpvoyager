@@ -1,5 +1,5 @@
+# ruff: noqa: S101
 import logging
-from pathlib import Path
 
 from voyager.logging_setup import _handler_uses_path, _resolve_log_path, configure_logging
 

@@ -1,11 +1,11 @@
-from collections.abc import Sequence
 import os
+from collections.abc import Sequence
+from importlib.resources import files
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import Footer, Header, TabbedContent
-from importlib.resources import files
 
 from .config import DEFAULT_HTTP_TAB, DEFAULT_TABS, DEFAULT_WS_TAB
 from .models import GraphQLTabSpec, HttpTabSpec, WebSocketTabSpec
@@ -17,7 +17,7 @@ from .ws_tab import WebSocketTab
 class GraphQLVoyager(App[None]):
     """A tabbed console GraphQL client built with Textual."""
 
-    CSS = files('voyager.ui_components').joinpath('styles/main.tcss').read_text()
+    CSS = files("voyager.ui_components").joinpath("styles/main.tcss").read_text()
 
     BINDINGS = [
         Binding("ctrl+s", "send", "Send request"),

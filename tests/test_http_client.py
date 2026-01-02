@@ -1,3 +1,4 @@
+# ruff: noqa: S101
 import pytest
 
 from voyager.http_client import (
@@ -54,5 +55,5 @@ async def test_perform_http_request_with_requester_override():
 
 
 def test_validate_url_rejects_invalid_scheme():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported URL scheme"):
         _validate_url("ftp://example.com")

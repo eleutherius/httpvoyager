@@ -1,7 +1,7 @@
-import json
+# ruff: noqa: S101
 
 from voyager.models import GraphQLTabSpec
-from voyager.storage import load_last_state, save_state, _config_path
+from voyager.storage import _config_path, load_last_state, save_state
 
 
 def _make_spec(endpoint: str) -> GraphQLTabSpec:
@@ -38,4 +38,3 @@ def test_load_handles_broken_json(tmp_config_dir):
     spec = _make_spec("http://default")
     loaded = load_last_state(spec, section="graphql")
     assert loaded.endpoint == "http://default"
-

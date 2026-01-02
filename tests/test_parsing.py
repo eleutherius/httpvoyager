@@ -1,7 +1,8 @@
+# ruff: noqa: S101
 import pytest
 
-from voyager.parsing import format_response, parse_headers, parse_json_object
 from voyager.models import GraphQLResponse
+from voyager.parsing import format_response, parse_headers, parse_json_object
 
 
 def test_parse_json_object_valid():
@@ -9,7 +10,7 @@ def test_parse_json_object_valid():
 
 
 def test_parse_json_object_non_object():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Expected a JSON object"):
         parse_json_object('["a", "b"]')
 
 
@@ -24,7 +25,7 @@ def test_parse_headers_key_value_lines():
 
 
 def test_parse_headers_invalid_line():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid header line"):
         parse_headers("NoColonHere")
 
 

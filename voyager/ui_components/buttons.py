@@ -1,11 +1,12 @@
-from textual.widgets import Button
 from importlib.resources import files
+
+from textual.widgets import Button
 
 
 class SmallButton(Button):
     """Compact button with Voyager styling."""
 
-    DEFAULT_CSS = files('voyager.ui_components').joinpath('styles/buttons.tcss').read_text()
+    DEFAULT_CSS = files("voyager.ui_components").joinpath("styles/buttons.tcss").read_text()
 
     def __init__(self, label: str, *, variant: str = "default", **kwargs) -> None:
         super().__init__(label, **kwargs)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-from typing import Any, Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass
+from dataclasses import field as dc_field
+from typing import Any
 
 from .models import GraphQLResponse
 
@@ -20,7 +22,7 @@ class TypeInfo:
     name: str
     kind: str
     description: str = ""
-    fields: list[FieldInfo] = field(default_factory=list)
+    fields: list[FieldInfo] = dc_field(default_factory=list)
 
 
 @dataclass
@@ -28,18 +30,18 @@ class IntrospectionResult:
     success: bool
     status: str
     details: str
-    types: list[TypeInfo] = field(default_factory=list)
+    types: list[TypeInfo] = dc_field(default_factory=list)
 
 
 def build_introspection_result(response: GraphQLResponse) -> IntrospectionResult:
     """Parse introspection HTTP response into a structured result."""
+    if response.status != 200:
+        return IntrospectionResult(False, f"HTTP {response.status}", response.text, [])
+
     try:
         data = json.loads(response.text)
     except Exception as exc:
         return IntrospectionResult(False, f"Could not parse JSON: {exc}", response.text, [])
-
-    if response.status != 200:
-        return IntrospectionResult(False, f"HTTP {response.status}", response.text, [])
 
     errors = data.get("errors")
     if errors:
@@ -122,4 +124,3 @@ def _type_repr(node: dict[str, Any] | None) -> str:
             return f"[{inner}]"
         return inner
     return name or kind or "Unknown"
-

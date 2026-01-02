@@ -65,3 +65,11 @@ The module is built around GraphQLTabSpec and GraphQLVoyager. Change default val
     ```
 
 You can inherit from GraphQLTab/GraphQLVoyager to change the layout or add additional panels in another way.
+
+
+### Unit tests 
+
+```
+ python3 -m pip install -e '.[dev]' 
+ pytest 
+```

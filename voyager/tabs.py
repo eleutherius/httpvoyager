@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import shutil
 import subprocess
@@ -11,6 +10,7 @@ from textual.reactive import reactive
 from textual.widgets import Checkbox, Input, Select, Static, TabPane, TabbedContent, TextArea, Tree
 
 from .http_client import perform_http_request, perform_request
+from .introspection import add_types_to_tree, build_introspection_result
 from .models import GraphQLTabSpec, HttpTabSpec
 from .parsing import format_response, parse_headers, parse_json_object
 from .ui_components import SmallButton
@@ -40,26 +40,35 @@ query IntrospectionQuery {
 
 
 async def _copy_text_with_fallback(
-    app: Any, text: str, logger: logging.Logger, set_status: Callable[[str], None]
+    app: Any,
+    text: str,
+    logger: logging.Logger,
+    set_status: Callable[[str], None],
+    *,
+    clipboard_copier: Callable[[str], Awaitable[None]] | None = None,
+    pbcopy_path: str | None = None,
 ) -> None:
     if not text.strip():
         set_status("Nothing to copy.")
         return
     try:
-        await app.copy_to_clipboard(text)
+        if clipboard_copier:
+            await clipboard_copier(text)
+        else:
+            await app.copy_to_clipboard(text)
     except Exception as exc:  # pragma: no cover - runtime-only clipboard failure
         logger.debug("Textual clipboard copy failed: %s", exc)
     else:
         set_status("Response copied to clipboard.")
         return
 
-    pbcopy_path = shutil.which("pbcopy")
-    if not pbcopy_path:
+    pbcopy_exec = pbcopy_path or shutil.which("pbcopy")
+    if not pbcopy_exec:
         set_status("Copy failed: no clipboard available.")
         return
     try:
         subprocess.run(  # noqa: S603 - uses local clipboard binary with trusted input
-            [pbcopy_path],
+            [pbcopy_exec],
             input=text,
             text=True,
             check=True,
@@ -310,76 +319,21 @@ class GraphQLTab(TabPane):
     def _populate_tree(self, response) -> None:
         tree = self._tree()
         self._clear_tree()
-        data = self._parse_json_response(response, tree)
-        if data is None:
+        result = build_introspection_result(response)
+        if not result.success:
+            self._show_tree_message(tree, result.status, result.details)
             return
 
-        if not self._validate_response(response, data, tree):
-            return
-
-        types = data.get("data", {}).get("__schema", {}).get("types")
-        if not types:
-            self._show_tree_message(tree, "No types returned from schema.", response.text)
-            return
-
-        added = self._add_types_to_tree(types, tree)
-
-        # Expand everything so the user sees types/fields immediately.
+        add_types_to_tree(tree, result.types)
         tree.root.expand_all()
         tree.refresh(layout=True)
-        if added == 0:
-            self._set_status("Schema loaded but no object/interface/input types.")
-            return
-        summary = f"Schema loaded: {added} types."
-        self._set_status(summary)
-        type_names = [t.get("name") for t in types if t.get("name") and not t.get("name", "").startswith("__")]
-        self._textarea("details").load_text(summary + "\n\n" + "\n".join(type_names[:50]))
+        self._set_status(result.status)
+        self._textarea("details").load_text(result.details)
         # Focus on first type to show info immediately.
         first_child = tree.root.children[0] if tree.root.children else None
         if first_child:
             tree.focus_node(first_child)
             tree.scroll_to_node(first_child)
-
-    def _parse_json_response(self, response, tree: Tree) -> dict[str, Any] | None:
-        try:
-            return json.loads(response.text)
-        except Exception as exc:
-            self._show_tree_message(tree, f"Could not parse JSON: {exc}", response.text)
-            return None
-
-    def _validate_response(self, response, data: dict[str, Any], tree: Tree) -> bool:
-        if response.status != 200:
-            self._show_tree_message(tree, f"HTTP {response.status}", response.text)
-            return False
-
-        errors = data.get("errors")
-        if errors:
-            self._show_tree_message(tree, "GraphQL errors", json.dumps(errors, indent=2))
-            return False
-        return True
-
-    def _add_types_to_tree(self, types: list[dict[str, Any]], tree: Tree) -> int:
-        added = 0
-        for t in types:
-            name = t.get("name")
-            kind = t.get("kind")
-            if not name or name.startswith("__"):
-                continue
-            if kind not in ("OBJECT", "INTERFACE", "INPUT_OBJECT"):
-                continue
-            type_node = tree.root.add(f"{name} ({kind.lower()})", data={"description": t.get("description") or ""})
-            fields: list[dict[str, Any]] = t.get("fields") or []
-            for f in fields:
-                fname = f.get("name")
-                ftype = _type_repr(f.get("type"))
-                fdesc = f.get("description") or ""
-                args = f.get("args") or []
-                arg_str = ", ".join(f"{a.get('name')}: {_type_repr(a.get('type'))}" for a in args)
-                data = {"description": fdesc, "type": ftype, "args_str": arg_str}
-                type_node.add(f"{fname}: {ftype}", data=data)
-            type_node.expand()
-            added += 1
-        return added
 
     def _show_tree_message(self, tree: Tree, status: str, details: str) -> None:
         self._set_status(status)
@@ -450,11 +404,11 @@ class HttpTab(TabPane):
                             )
                             with Container(classes="expand"):
                                 yield Input(
-                                    value = self.spec.url,
-                                    placeholder = "https://api.example.com/resource",
-                                    id = self._wid("endpoint"),
+                                    value=self.spec.url,
+                                    placeholder="https://api.example.com/resource",
+                                    id=self._wid("endpoint"),
                                     classes="endpoint-input",
-                            )
+                                )
                     yield Checkbox(
                         "Verify TLS certificates (recommended)",
                         value=self.spec.verify_tls,
@@ -488,3 +442,106 @@ class HttpTab(TabPane):
                         classes="box response-box response-section",
                     )
 
+    def watch_busy(self, busy: bool) -> None:
+        try:
+            self._button("send").disabled = busy
+        except Exception:
+            pass
+        status = "Sending request..." if busy else ""
+        self._set_status(status)
+
+    def focus_endpoint(self) -> None:
+        self._input("endpoint").focus()
+
+    def clear_response(self) -> None:
+        self._textarea("response").load_text("")
+
+    async def copy_response(self) -> None:
+        await _copy_text_with_fallback(self.app, self._textarea("response").text, self.logger, self._set_status)
+
+    async def send(self) -> None:
+        if self.busy:
+            return
+
+        endpoint = self._input("endpoint").value.strip()
+        method = (self._select("method").value or "GET").upper()
+        raw_headers = self._textarea("headers").text
+        body_text = self._textarea("body").text
+        verify_tls = self._checkbox("verify").value
+
+        if not endpoint:
+            self._set_response("Please provide a URL.")
+            return
+
+        try:
+            headers = parse_headers(raw_headers)
+        except ValueError as exc:
+            self._set_response(str(exc))
+            return
+
+        body = body_text if body_text.strip() else None
+
+        self.busy = True
+        self._set_response("Sending request...")
+        try:
+            response = await perform_http_request(endpoint, method, headers, body, verify_tls)
+        except Exception as exc:  # pragma: no cover - network errors are runtime-only
+            self._set_response(f"Request failed: {exc!r}")
+        else:
+            display = format_response(response)
+            self._set_response(display)
+            if not verify_tls:
+                self._set_status("Warning: TLS verification disabled for this request.")
+        finally:
+            self.busy = False
+            self._persist_state()
+
+    def on_button_pressed(self, event: SmallButton.Pressed) -> None:
+        if event.button.id == self._wid("send"):
+            asyncio.create_task(self.send())
+        elif event.button.id == self._wid("clear"):
+            self.clear_response()
+        elif event.button.id == self._wid("copy-response"):
+            asyncio.create_task(self.copy_response())
+
+    def _textarea(self, name: str) -> TextArea:
+        return self.query_one(f"#{self._wid(name)}", TextArea)
+
+    def _input(self, name: str) -> Input:
+        return self.query_one(f"#{self._wid(name)}", Input)
+
+    def _checkbox(self, name: str) -> Checkbox:
+        return self.query_one(f"#{self._wid(name)}", Checkbox)
+
+    def _select(self, name: str) -> Select:
+        return self.query_one(f"#{self._wid(name)}", Select)
+
+    def _button(self, name: str) -> SmallButton:
+        return self.query_one(f"#{self._wid(name)}", SmallButton)
+
+    def _set_response(self, message: str) -> None:
+        self._textarea("response").load_text(message)
+
+    def _set_status(self, message: str) -> None:
+        self.query_one(f"#{self._wid('status')}", Static).update(message)
+
+    def set_status(self, message: str) -> None:
+        self._set_status(message)
+
+    def current_spec(self) -> HttpTabSpec:
+        return HttpTabSpec(
+            id=self.spec.id,
+            title=self.spec.title,
+            url=self._input("endpoint").value.strip(),
+            method=(self._select("method").value or "GET").upper(),
+            body=self._textarea("body").text,
+            headers=self._textarea("headers").text,
+            verify_tls=self._checkbox("verify").value,
+        )
+
+    def _persist_state(self) -> None:
+        spec = self.current_spec()
+        try:
+            self.app.save_state(spec, "http")  # type: ignore[attr-defined]
+        except Exception:
+            self._set_status("Could not save state.")

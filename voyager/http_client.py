@@ -1,6 +1,7 @@
 import asyncio
 import json
 import ssl
+from collections.abc import Awaitable, Callable
 from urllib import request
 from urllib.parse import urlparse
 
@@ -12,20 +13,41 @@ except Exception:  # pragma: no cover - httpx is optional
 from .models import GraphQLResponse
 
 
-async def perform_request(endpoint: str, payload: dict, headers: dict[str, str], verify_tls: bool) -> GraphQLResponse:
+async def perform_request(
+    endpoint: str,
+    payload: dict,
+    headers: dict[str, str],
+    verify_tls: bool,
+    requester: Callable[[str, dict, dict[str, str], bool], Awaitable[tuple[int, str]]] | None = None,
+    client_factory: Callable[[], Awaitable[object] | object] | None = None,
+) -> GraphQLResponse:
     _validate_url(endpoint)
     start = asyncio.get_event_loop().time()
-    if httpx is not None:
-        status, text = await _httpx_post(endpoint, payload, headers, verify_tls)
+    if requester is not None:
+        status, text = await requester(endpoint, payload, headers, verify_tls)
+    elif httpx is not None:
+        status, text = await _httpx_post(endpoint, payload, headers, verify_tls, client_factory)
     else:
         status, text = await asyncio.to_thread(_urllib_post, endpoint, payload, headers, verify_tls)
     elapsed = (asyncio.get_event_loop().time() - start) * 1000
     return GraphQLResponse(status=status, text=text, duration_ms=elapsed)
 
 
-async def _httpx_post(endpoint: str, payload: dict, headers: dict[str, str], verify_tls: bool) -> tuple[int, str]:
+async def _httpx_post(
+    endpoint: str,
+    payload: dict,
+    headers: dict[str, str],
+    verify_tls: bool,
+    client_factory: Callable[[], Awaitable[object]] | None = None,
+) -> tuple[int, str]:
     if httpx is None:  # pragma: no cover - guarded by perform_request
         raise RuntimeError("httpx is not installed.")
+    if client_factory:
+        client = client_factory()
+        if asyncio.iscoroutine(client):
+            client = await client
+        resp = await client.post(endpoint, json=payload, headers=headers)
+        return resp.status_code, resp.text
     async with httpx.AsyncClient(timeout=20, verify=verify_tls) as client:
         resp = await client.post(endpoint, json=payload, headers=headers)
         return resp.status_code, resp.text
@@ -43,12 +65,16 @@ async def perform_http_request(
     headers: dict[str, str],
     body: str | None,
     verify_tls: bool,
+    requester: Callable[[str, str, dict[str, str], str | None, bool], Awaitable[tuple[int, str]]] | None = None,
+    client_factory: Callable[[], Awaitable[object] | object] | None = None,
 ) -> GraphQLResponse:
     normalized_method = method.strip().upper() or "GET"
     _validate_url(endpoint)
     start = asyncio.get_event_loop().time()
-    if httpx is not None:
-        status, text = await _httpx_request(endpoint, normalized_method, headers, body, verify_tls)
+    if requester is not None:
+        status, text = await requester(endpoint, normalized_method, headers, body, verify_tls)
+    elif httpx is not None:
+        status, text = await _httpx_request(endpoint, normalized_method, headers, body, verify_tls, client_factory)
     else:
         status, text = await asyncio.to_thread(_urllib_request, normalized_method, endpoint, headers, body, verify_tls)
     elapsed = (asyncio.get_event_loop().time() - start) * 1000
@@ -56,10 +82,26 @@ async def perform_http_request(
 
 
 async def _httpx_request(
-    endpoint: str, method: str, headers: dict[str, str], body: str | None, verify_tls: bool
+    endpoint: str,
+    method: str,
+    headers: dict[str, str],
+    body: str | None,
+    verify_tls: bool,
+    client_factory: Callable[[], Awaitable[object] | object] | None = None,
 ) -> tuple[int, str]:
     if httpx is None:  # pragma: no cover - guarded by perform_http_request
         raise RuntimeError("httpx is not installed.")
+    if client_factory:
+        client = client_factory()
+        if asyncio.iscoroutine(client):
+            client = await client
+        resp = await client.request(
+            method=method,
+            url=endpoint,
+            content=body.encode("utf-8") if body else None,
+            headers=headers,
+        )
+        return resp.status_code, resp.text
     async with httpx.AsyncClient(timeout=20, verify=verify_tls) as client:
         resp = await client.request(
             method=method,

@@ -49,6 +49,7 @@ class WebSocketTab(TabPane):
         self.spec = spec
         self.connection = None
         self._recv_task: asyncio.Task[Any] | None = None
+        self.ws_connect = None
 
     def _wid(self, name: str) -> str:
         return f"{self.id}-{name}"
@@ -131,7 +132,7 @@ class WebSocketTab(TabPane):
         elif event.button.id == self._wid("copy-log"):
             asyncio.create_task(self.copy_log())
 
-    async def connect(self) -> None:
+    async def connect(self, ws_connect: Callable[..., Any] | None = None) -> None:
         if self.busy:
             return
         endpoint = self._input("endpoint").value.strip()
@@ -154,7 +155,8 @@ class WebSocketTab(TabPane):
             self._set_status(str(exc))
             return
 
-        if websockets is None:
+        connect_callable = ws_connect or self.ws_connect or websockets
+        if connect_callable is None:
             self._set_status("Install the 'websockets' package to use this tab.")
             return
 
@@ -162,10 +164,14 @@ class WebSocketTab(TabPane):
         await self.disconnect()
         self._set_status(f"Connecting to {endpoint} ...")
         try:
-            self.connection = await websockets.connect(  # type: ignore[union-attr]
-                endpoint,
-                **_connect_kwargs(headers, verify_tls),
-            )
+            connector = getattr(connect_callable, "connect", None)
+            if connector:
+                self.connection = await connector(endpoint, **_connect_kwargs(headers, verify_tls))  # type: ignore[arg-type]
+            else:
+                self.connection = await connect_callable(  # type: ignore[operator,union-attr]
+                    endpoint,
+                    **_connect_kwargs(headers, verify_tls),
+                )
         except Exception as exc:
             self.logger.debug("WebSocket connection failed: %s", exc)
             self._append_log(f"Connect failed: {exc}")

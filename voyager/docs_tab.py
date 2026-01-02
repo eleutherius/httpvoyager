@@ -1,12 +1,11 @@
 import asyncio
-import json
 import logging
-from typing import Any
 
 from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Checkbox, Input, Static, TabPane, TextArea, Tree
 
+from .introspection import add_types_to_tree, build_introspection_result
 from .http_client import perform_request
 from .models import GraphQLTabSpec
 from .parsing import parse_headers
@@ -171,76 +170,22 @@ class DocumentationTab(TabPane):
     def _populate_tree(self, response) -> None:
         tree = self._tree()
         self._clear_tree()
-        data = self._parse_json_response(response, tree)
-        if data is None:
+        result = build_introspection_result(response)
+        if not result.success:
+            self._show_tree_message(tree, result.status, result.details)
             return
 
-        if not self._validate_response(response, data, tree):
-            return
+        add_types_to_tree(tree, result.types)
 
-        types = data.get("data", {}).get("__schema", {}).get("types")
-        if not types:
-            self._show_tree_message(tree, "No types returned from schema.", response.text)
-            return
-
-        added = self._add_types_to_tree(types, tree)
-
-        # Expand everything so the user sees types/fields immediately.
         tree.root.expand_all()
         tree.refresh(layout=True)
-        if added == 0:
-            self._set_status("Schema loaded but no object/interface/input types.")
-            return
-        summary = f"Schema loaded: {added} types."
-        self._set_status(summary)
-        type_names = [t.get("name") for t in types if t.get("name") and not t.get("name", "").startswith("__")]
-        self._textarea("details").load_text(summary + "\n\n" + "\n".join(type_names[:50]))
+        self._set_status(result.status)
+        self._textarea("details").load_text(result.details)
         # Focus on first type to show info immediately.
         first_child = tree.root.children[0] if tree.root.children else None
         if first_child:
             tree.focus_node(first_child)
             tree.scroll_to_node(first_child)
-
-    def _parse_json_response(self, response, tree: Tree) -> dict[str, Any] | None:
-        try:
-            return json.loads(response.text)
-        except Exception as exc:
-            self._show_tree_message(tree, f"Could not parse JSON: {exc}", response.text)
-            return None
-
-    def _validate_response(self, response, data: dict[str, Any], tree: Tree) -> bool:
-        if response.status != 200:
-            self._show_tree_message(tree, f"HTTP {response.status}", response.text)
-            return False
-
-        errors = data.get("errors")
-        if errors:
-            self._show_tree_message(tree, "GraphQL errors", json.dumps(errors, indent=2))
-            return False
-        return True
-
-    def _add_types_to_tree(self, types: list[dict[str, Any]], tree: Tree) -> int:
-        added = 0
-        for t in types:
-            name = t.get("name")
-            kind = t.get("kind")
-            if not name or name.startswith("__"):
-                continue
-            if kind not in ("OBJECT", "INTERFACE", "INPUT_OBJECT"):
-                continue
-            type_node = tree.root.add(f"{name} ({kind.lower()})", data={"description": t.get("description") or ""})
-            fields: list[dict[str, Any]] = t.get("fields") or []
-            for f in fields:
-                fname = f.get("name")
-                ftype = _type_repr(f.get("type"))
-                fdesc = f.get("description") or ""
-                args = f.get("args") or []
-                arg_str = ", ".join(f"{a.get('name')}: {_type_repr(a.get('type'))}" for a in args)
-                data = {"description": fdesc, "type": ftype, "args_str": arg_str}
-                type_node.add(f"{fname}: {ftype}", data=data)
-            type_node.expand()
-            added += 1
-        return added
 
     def _show_tree_message(self, tree: Tree, status: str, details: str) -> None:
         self._set_status(status)
@@ -272,19 +217,3 @@ class DocumentationTab(TabPane):
 
     def _set_status(self, message: str) -> None:
         self.query_one(f"#{self._wid('status')}", Static).update(message)
-
-
-def _type_repr(node: dict[str, Any] | None) -> str:
-    if not node:
-        return "Unknown"
-    name = node.get("name")
-    kind = node.get("kind")
-    of_type = node.get("ofType")
-    if of_type:
-        inner = _type_repr(of_type)
-        if kind == "NON_NULL":
-            return f"{inner}!"
-        if kind == "LIST":
-            return f"[{inner}]"
-        return inner
-    return name or kind or "Unknown"

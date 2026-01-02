@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+import os
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -29,8 +30,15 @@ class GraphQLVoyager(App[None]):
         Binding("f12", "quit", "Quit"),
     ]
 
-    def __init__(self, tab_specs: Sequence[GraphQLTabSpec] | GraphQLTabSpec | None = None) -> None:
+    def __init__(
+        self,
+        tab_specs: Sequence[GraphQLTabSpec] | GraphQLTabSpec | None = None,
+        *,
+        config_dir: str | None = None,
+    ) -> None:
         super().__init__()
+        if config_dir:
+            os.environ["HTTP_VOYAGER_CONFIG_DIR"] = config_dir
         base_spec = self._normalize_spec(tab_specs)
         self.tab_spec = load_last_state(base_spec, section="graphql")
         self.http_spec = load_last_state(DEFAULT_HTTP_TAB, section="http")

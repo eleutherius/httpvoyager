@@ -13,6 +13,13 @@ dependencies = [
     "httpx>=0.25.0",
     "websockets>=11.0",
 ]
+optional-dependencies = { dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-mock>=3.10",
+    "respx>=0.20",
+    "textual-dev>=1.0.0",
+]}
 authors = [{ name = "Voyager Maintainers" }]
 
 [project.urls]
@@ -98,3 +105,7 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"

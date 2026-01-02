@@ -10,7 +10,7 @@
 - [ ] HV-008 Add authentication support
 - [ ] HV-009 Implement upload functionality
 - [x] HV-010 Fix problem with floating request panel
-- [ ] HV-011 Add simple module tests
+- [x] HV-011 Add simple module tests
 - [x] HV-012 Fix problem with floating graphql response/doc tabs
 - [x] HV-013 Add debug log functionality
 - [x] HV-014 Add WebSocket support

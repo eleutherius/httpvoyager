@@ -1,6 +1,10 @@
 """Voyager: a Textual-based GraphQL playground for the terminal."""
 
-from .app import GraphQLVoyager
+from __future__ import annotations
+
+import importlib
+from typing import Any
+
 from .config import (
     DEFAULT_ENDPOINT,
     DEFAULT_HTTP_TAB,
@@ -9,11 +13,7 @@ from .config import (
     DEFAULT_VARIABLES,
     DEFAULT_WS_TAB,
 )
-from .docs_tab import DocumentationTab
 from .models import GraphQLResponse, GraphQLTabSpec, HttpTabSpec, WebSocketTabSpec
-from .tabs import GraphQLTab, HttpTab
-from .ws_tab import WebSocketTab
-from .ui_components import SmallButton
 
 __all__ = [
     "GraphQLVoyager",
@@ -33,5 +33,25 @@ __all__ = [
     "DocumentationTab",
     "WebSocketTab",
 ]
+
+_LAZY_IMPORTS: dict[str, tuple[str, str]] = {
+    "GraphQLVoyager": ("voyager.app", "GraphQLVoyager"),
+    "GraphQLTab": ("voyager.tabs", "GraphQLTab"),
+    "HttpTab": ("voyager.tabs", "HttpTab"),
+    "SmallButton": ("voyager.ui_components", "SmallButton"),
+    "DocumentationTab": ("voyager.docs_tab", "DocumentationTab"),
+    "WebSocketTab": ("voyager.ws_tab", "WebSocketTab"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _LAZY_IMPORTS:
+        module_name, attr = _LAZY_IMPORTS[name]
+        module = importlib.import_module(module_name)
+        value = getattr(module, attr)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __version__ = "0.1.0"

@@ -8,9 +8,13 @@ from .models import GraphQLTabSpec, HttpTabSpec, WebSocketTabSpec
 
 APP_DIR_NAME = "http_voyager"
 CONFIG_FILE_NAME = "state.json"
+ENV_CONFIG_DIR = "HTTP_VOYAGER_CONFIG_DIR"
 
 
 def _config_dir() -> Path:
+    override = os.environ.get(ENV_CONFIG_DIR)
+    if override:
+        return Path(override).expanduser()
     base = os.environ.get("XDG_CONFIG_HOME")
     if base:
         return Path(base) / APP_DIR_NAME
